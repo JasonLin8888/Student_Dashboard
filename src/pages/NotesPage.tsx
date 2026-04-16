@@ -60,17 +60,20 @@ export default function NotesPage() {
     if (selectedNote?.id === id) setSelectedNote(null);
   };
 
+  const escapeHtml = (str: string) =>
+    str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
   const renderMarkdown = (text: string) => {
     return text
       .split('\n')
       .map((line) => {
-        if (line.startsWith('# ')) return `<h1 class="text-2xl font-bold text-gray-900 mb-3">${line.slice(2)}</h1>`;
-        if (line.startsWith('## ')) return `<h2 class="text-lg font-semibold text-gray-800 mb-2 mt-4">${line.slice(3)}</h2>`;
-        if (line.startsWith('### ')) return `<h3 class="text-base font-semibold text-gray-700 mb-1 mt-3">${line.slice(4)}</h3>`;
-        if (line.startsWith('- ') || line.startsWith('* ')) return `<li class="ml-4 text-gray-600 mb-1">${line.slice(2)}</li>`;
-        if (line.match(/^\d+\. /)) return `<li class="ml-4 text-gray-600 mb-1 list-decimal">${line.replace(/^\d+\. /, '')}</li>`;
+        if (line.startsWith('# ')) return `<h1 class="text-2xl font-bold text-gray-900 mb-3">${escapeHtml(line.slice(2))}</h1>`;
+        if (line.startsWith('## ')) return `<h2 class="text-lg font-semibold text-gray-800 mb-2 mt-4">${escapeHtml(line.slice(3))}</h2>`;
+        if (line.startsWith('### ')) return `<h3 class="text-base font-semibold text-gray-700 mb-1 mt-3">${escapeHtml(line.slice(4))}</h3>`;
+        if (line.startsWith('- ') || line.startsWith('* ')) return `<li class="ml-4 text-gray-600 mb-1">${escapeHtml(line.slice(2))}</li>`;
+        if (line.match(/^\d+\. /)) return `<li class="ml-4 text-gray-600 mb-1 list-decimal">${escapeHtml(line.replace(/^\d+\. /, ''))}</li>`;
         if (line === '') return `<div class="h-2"></div>`;
-        return `<p class="text-gray-600 mb-1 leading-relaxed">${line}</p>`;
+        return `<p class="text-gray-600 mb-1 leading-relaxed">${escapeHtml(line)}</p>`;
       })
       .join('');
   };
