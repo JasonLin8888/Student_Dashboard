@@ -5,6 +5,8 @@ export interface Task {
   dueDate?: string;
   classId?: string;
   priority: 'low' | 'medium' | 'high';
+  description?: string;
+  customFields?: Record<string, string>;
   createdAt: string;
 }
 
