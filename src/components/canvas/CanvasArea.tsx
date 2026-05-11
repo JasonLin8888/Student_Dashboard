@@ -9,7 +9,7 @@ interface CanvasAreaProps {
   classId?: string;
   draggingType: WidgetType | null;
   onDraggedPos: (pos: { x: number; y: number; width: number; height: number } | null) => void;
-  onBoundsChange: (bounds: { width: number; height: number } | null) => void;
+  onBoundsChange?: (bounds: { width: number; height: number } | null) => void;
 }
 
 export default function CanvasArea({ pageKey, classId, draggingType, onDraggedPos, onBoundsChange }: CanvasAreaProps) {
@@ -31,7 +31,7 @@ export default function CanvasArea({ pageKey, classId, draggingType, onDraggedPo
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
       canvas.style.minHeight = `${Math.max(700, rect.height)}px`;
-      onBoundsChange({ width: rect.width, height: rect.height });
+      onBoundsChange?.({ width: rect.width, height: rect.height });
     };
 
     resize();
@@ -40,7 +40,7 @@ export default function CanvasArea({ pageKey, classId, draggingType, onDraggedPo
 
     return () => {
       observer.disconnect();
-      onBoundsChange(null);
+      onBoundsChange?.(null);
     };
   }, [onBoundsChange]);
 
@@ -64,9 +64,9 @@ export default function CanvasArea({ pageKey, classId, draggingType, onDraggedPo
   return (
     <div
       ref={combineRef}
-      className={`relative flex-1 overflow-auto ${isOver ? 'bg-indigo-50/40' : ''}`}
+      className={`relative flex-1 overflow-y-auto overflow-x-hidden ${isOver ? 'bg-indigo-50/40' : ''}`}
       style={{
-        backgroundImage: 'radial-gradient(circle, #d1d5db 1px, transparent 1px)',
+        backgroundImage: 'radial-gradient(circle at 0 0, #d1d5db 1px, transparent 1px)',
         backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
       }}
       onMouseMove={handleMouseMove}

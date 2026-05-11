@@ -422,14 +422,14 @@ export function DashboardCustomizationProvider({ children }: { children: React.R
     bounds: CanvasBounds,
   ) => {
     const size = defaultSizes[type];
-    const widgets = state.widgetsByPage[pageKey] ?? [];
-    const placement = findNearestPlacement(widgets, x, y, size.width, size.height, bounds);
-    if (!placement) return false;
+
+    const nextX = Math.max(0, Math.min(snap(x), bounds.width - size.width));
+    const nextY = Math.max(0, Math.min(snap(y), bounds.height - size.height));
 
     setState((prev) => {
       const currentWidgets = prev.widgetsByPage[pageKey] ?? [];
       const maxZ = currentWidgets.reduce((max, widget) => Math.max(max, widget.zIndex), 0);
-      const widget = newWidget(type, placement.x, placement.y, maxZ + 1);
+      const widget = newWidget(type, nextX, nextY, maxZ + 1);
 
       return {
         ...prev,
@@ -441,7 +441,7 @@ export function DashboardCustomizationProvider({ children }: { children: React.R
     });
 
     return true;
-  }, [setState, state.widgetsByPage]);
+  }, [setState]);
 
   const addWidget = useCallback((pageKey: string, type: WidgetType) => {
     addWidgetAtPosition(pageKey, type, 24, 24, { width: 1800, height: 1200 });

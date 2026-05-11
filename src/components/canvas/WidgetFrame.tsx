@@ -14,10 +14,17 @@ const MIN_W = 220;
 const MIN_H = 140;
 
 export default function WidgetFrame({ pageKey, widget, canvasRef, classId }: WidgetFrameProps) {
-  const { isEditing, updateWidget, removeWidget, bringToFront, canPlaceWidget } = useDashboardCustomization();
+  const { isEditing, updateWidget, removeWidget, bringToFront } = useDashboardCustomization();
   const drag = useRef<{ startX: number; startY: number; wx: number; wy: number; x: number; y: number } | null>(null);
-  const resize = useRef<{ startX: number; startY: number; width: number; height: number } | null>(null);
-
+  const resize = useRef<{
+    startX: number;
+    startY: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    direction: string;
+  } | null>(null);
   const onHeaderMouseDown = useCallback((e: React.MouseEvent) => {
     if (!isEditing) return;
     if ((e.target as HTMLElement).closest('button')) return;
@@ -38,13 +45,6 @@ export default function WidgetFrame({ pageKey, widget, canvasRef, classId }: Wid
       if (canvasRect) {
         nx = Math.max(0, Math.min(nx, canvasRect.width - widget.width));
         ny = Math.max(0, Math.min(ny, canvasRect.height - widget.height));
-
-        if (!canPlaceWidget(pageKey, nx, ny, widget.width, widget.height, {
-          width: canvasRect.width,
-          height: canvasRect.height,
-        }, widget.id)) {
-          return;
-        }
       }
 
       drag.current.x = nx;
@@ -53,17 +53,6 @@ export default function WidgetFrame({ pageKey, widget, canvasRef, classId }: Wid
     };
 
     const onUp = () => {
-      if (drag.current) {
-        const snappedX = Math.round(drag.current.x / GRID_SIZE) * GRID_SIZE;
-        const snappedY = Math.round(drag.current.y / GRID_SIZE) * GRID_SIZE;
-        const canvasRect = canvasRef.current?.getBoundingClientRect();
-        if (!canvasRect || canPlaceWidget(pageKey, Math.max(0, snappedX), Math.max(0, snappedY), widget.width, widget.height, {
-          width: canvasRect.width,
-          height: canvasRect.height,
-        }, widget.id)) {
-          updateWidget(pageKey, widget.id, { x: Math.max(0, snappedX), y: Math.max(0, snappedY) });
-        }
-      }
       drag.current = null;
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
@@ -73,33 +62,74 @@ export default function WidgetFrame({ pageKey, widget, canvasRef, classId }: Wid
     window.addEventListener('mouseup', onUp);
   }, [bringToFront, canvasRef, isEditing, pageKey, updateWidget, widget.height, widget.id, widget.width, widget.x, widget.y]);
 
-  const onResizeMouseDown = useCallback((e: React.MouseEvent) => {
+  const onResizeMouseDown = useCallback((e: React.MouseEvent, direction: string) => {
     if (!isEditing) return;
 
     e.preventDefault();
     e.stopPropagation();
-    resize.current = { startX: e.clientX, startY: e.clientY, width: widget.width, height: widget.height };
+
+    resize.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      x: widget.x,
+      y: widget.y,
+      width: widget.width,
+      height: widget.height,
+      direction,
+    };
 
     const onMove = (mv: MouseEvent) => {
       if (!resize.current) return;
 
-      const canvasRect = canvasRef.current?.getBoundingClientRect();
-      let width = Math.max(MIN_W, resize.current.width + mv.clientX - resize.current.startX);
-      let height = Math.max(MIN_H, resize.current.height + mv.clientY - resize.current.startY);
+      const dx = mv.clientX - resize.current.startX;
+      const dy = mv.clientY - resize.current.startY;
 
-      if (canvasRect) {
-        width = Math.min(width, canvasRect.width - widget.x);
-        height = Math.min(height, canvasRect.height - widget.y);
+      let nextX = resize.current.x;
+      let nextY = resize.current.y;
+      let nextWidth = resize.current.width;
+      let nextHeight = resize.current.height;
 
-        if (!canPlaceWidget(pageKey, widget.x, widget.y, width, height, {
-          width: canvasRect.width,
-          height: canvasRect.height,
-        }, widget.id)) {
-          return;
-        }
+      if (direction.includes('e')) {
+        nextWidth = resize.current.width + dx;
       }
 
-      updateWidget(pageKey, widget.id, { width, height });
+      if (direction.includes('s')) {
+        nextHeight = resize.current.height + dy;
+      }
+
+      if (direction.includes('w')) {
+        nextX = resize.current.x + dx;
+        nextWidth = resize.current.width - dx;
+      }
+
+      if (direction.includes('n')) {
+        nextY = resize.current.y + dy;
+        nextHeight = resize.current.height - dy;
+      }
+
+      nextX = Math.round(nextX / GRID_SIZE) * GRID_SIZE;
+      nextY = Math.round(nextY / GRID_SIZE) * GRID_SIZE;
+      nextWidth = Math.round(nextWidth / GRID_SIZE) * GRID_SIZE;
+      nextHeight = Math.round(nextHeight / GRID_SIZE) * GRID_SIZE;
+
+      nextWidth = Math.max(MIN_W, nextWidth);
+      nextHeight = Math.max(MIN_H, nextHeight);
+
+      const canvasRect = canvasRef.current?.getBoundingClientRect();
+
+      if (canvasRect) {
+        nextX = Math.max(0, nextX);
+        nextY = Math.max(0, nextY);
+        nextWidth = Math.min(nextWidth, canvasRect.width - nextX);
+        nextHeight = Math.min(nextHeight, canvasRect.height - nextY);
+      }
+
+      updateWidget(pageKey, widget.id, {
+        x: nextX,
+        y: nextY,
+        width: nextWidth,
+        height: nextHeight,
+      });
     };
 
     const onUp = () => {
@@ -110,7 +140,17 @@ export default function WidgetFrame({ pageKey, widget, canvasRef, classId }: Wid
 
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-  }, [canvasRef, canPlaceWidget, isEditing, pageKey, updateWidget, widget.height, widget.id, widget.width, widget.x, widget.y]);
+  }, [
+    canvasRef,
+    isEditing,
+    pageKey,
+    updateWidget,
+    widget.height,
+    widget.id,
+    widget.width,
+    widget.x,
+    widget.y,
+  ]);
 
   return (
     <div
@@ -122,7 +162,7 @@ export default function WidgetFrame({ pageKey, widget, canvasRef, classId }: Wid
         height: widget.collapsed ? 'auto' : widget.height,
         zIndex: widget.zIndex,
       }}
-      className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+      className="relative rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
       onMouseDown={() => bringToFront(pageKey, widget.id)}
     >
       <div
@@ -150,19 +190,47 @@ export default function WidgetFrame({ pageKey, widget, canvasRef, classId }: Wid
       </div>
 
       {!widget.collapsed && (
-        <div className="relative h-[calc(100%-34px)] p-2">
+        <div className="h-[calc(100%_-_34px)] p-2">
           <WidgetRenderer type={widget.type} classId={classId} />
-          {isEditing && (
-            <div
-              onMouseDown={onResizeMouseDown}
-              className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
-              style={{
-                background: 'linear-gradient(135deg, transparent 50%, #d1d5db 50%)',
-                borderRadius: '0 0 4px 0',
-              }}
-            />
-          )}
         </div>
+      )}
+
+      {!widget.collapsed && isEditing && (
+        <>
+          <div
+            onMouseDown={(e) => onResizeMouseDown(e, 'n')}
+            className="absolute top-0 left-2 right-2 h-2 cursor-n-resize z-10"
+          />
+          <div
+            onMouseDown={(e) => onResizeMouseDown(e, 's')}
+            className="absolute bottom-0 left-2 right-2 h-2 cursor-s-resize z-10"
+          />
+          <div
+            onMouseDown={(e) => onResizeMouseDown(e, 'w')}
+            className="absolute left-0 top-2 bottom-2 w-2 cursor-w-resize z-10"
+          />
+          <div
+            onMouseDown={(e) => onResizeMouseDown(e, 'e')}
+            className="absolute right-0 top-2 bottom-2 w-2 cursor-e-resize z-10"
+          />
+
+          <div
+            onMouseDown={(e) => onResizeMouseDown(e, 'nw')}
+            className="absolute top-0 left-0 w-3 h-3 cursor-nw-resize z-20"
+          />
+          <div
+            onMouseDown={(e) => onResizeMouseDown(e, 'ne')}
+            className="absolute top-0 right-0 w-3 h-3 cursor-ne-resize z-20"
+          />
+          <div
+            onMouseDown={(e) => onResizeMouseDown(e, 'sw')}
+            className="absolute bottom-0 left-0 w-3 h-3 cursor-sw-resize z-20"
+          />
+          <div
+            onMouseDown={(e) => onResizeMouseDown(e, 'se')}
+            className="absolute bottom-0 right-0 w-3 h-3 cursor-se-resize z-20"
+          />
+        </>
       )}
     </div>
   );

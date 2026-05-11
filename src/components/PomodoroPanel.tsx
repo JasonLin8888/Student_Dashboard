@@ -52,22 +52,7 @@ export default function PomodoroPanel() {
   const strokeDashoffset = circumference * (1 - progress);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full p-4">
-      {/* Mode selector */}
-      <div className="flex gap-1 mb-6 bg-gray-100 rounded-full p-1">
-        {(Object.keys(MODES) as Mode[]).map(m => (
-          <button
-            key={m}
-            onClick={() => handleModeChange(m)}
-            className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
-              mode === m ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {MODES[m].label}
-          </button>
-        ))}
-      </div>
-
+    <div className="flex flex-col items-center justify-center h-col p-4">
       {/* Timer circle */}
       <div className="relative mb-6">
         <svg width="128" height="128" className="-rotate-90">
@@ -88,6 +73,21 @@ export default function PomodoroPanel() {
           </span>
           <span className="text-xs text-gray-400 mt-0.5">{MODES[mode].label}</span>
         </div>
+      </div>
+
+      {/* Mode selector */}
+      <div className="flex gap-1 mb-6 bg-gray-100 rounded-full p-1">
+        {(Object.keys(MODES) as Mode[]).map(m => (
+          <button
+            key={m}
+            onClick={() => handleModeChange(m)}
+            className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
+              mode === m ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {MODES[m].label}
+          </button>
+        ))}
       </div>
 
       {/* Controls */}
